@@ -1,14 +1,17 @@
 package com.zzy.webcut.controller;
 
 
+import com.zzy.webcut.common.Code;
 import com.zzy.webcut.common.R;
 import com.zzy.webcut.pojo.Clipboard;
 import com.zzy.webcut.service.ClipboardService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/clipboard")
+@Slf4j
 public class ClipboardController {
 
     @Autowired
@@ -37,9 +40,13 @@ public class ClipboardController {
     @GetMapping("/{name}")
     public R<Clipboard> getByName(@PathVariable String name) {
 
-        Clipboard clipboard = clipboardService.getClipboardByName(name);
+        R<Clipboard> result = clipboardService.getClipboardByName(name);
 
-        return R.success(clipboard);
+        if(result.getCode().equals(Code.CUT_OUT_OF_DATE)){
+            return R.error(Code.CUT_OUT_OF_DATE, result.getMsg());
+        }
+
+        return R.success(result.getData());
     }
 
     /**
@@ -51,7 +58,13 @@ public class ClipboardController {
     @PutMapping
     public R<String> update(@RequestBody Clipboard clipboard) {
 
-        clipboardService.updateClipboardByName(clipboard);
+        log.info(clipboard.getPassword());
+
+        R<String> result = clipboardService.updateClipboardByName(clipboard);
+
+        if(result.getCode().equals(Code.CUT_OUT_OF_DATE)){
+            return R.error(Code.CUT_OUT_OF_DATE, result.getMsg());
+        }
 
         return R.success("修改成功");
     }

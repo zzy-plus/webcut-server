@@ -1,8 +1,11 @@
 package com.zzy.webcut.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zzy.webcut.common.ClipboardNotFoundException;
+import com.zzy.webcut.common.Code;
+import com.zzy.webcut.common.R;
 import com.zzy.webcut.mapper.ClipboardMapper;
 import com.zzy.webcut.pojo.Clipboard;
 import com.zzy.webcut.pojo.Records;
@@ -12,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @Slf4j
@@ -45,13 +50,23 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
      */
     @Override
     @Transactional
-    public Clipboard getClipboardByName(String name) {
+    public R<Clipboard> getClipboardByName(String name) {
         LambdaQueryWrapper<Clipboard> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Clipboard::getName, name);
         Clipboard clipboard = this.getOne(queryWrapper);
 
         if (clipboard == null) {
             throw new ClipboardNotFoundException(String.format("剪切板%s不存在", name));
+        }
+
+        //检查是否过期
+        LocalDateTime updateTime = clipboard.getUpdateTime();
+        Integer expiration = clipboard.getExpiration();
+        LocalDateTime expTime = updateTime.plusSeconds(expiration);
+        LocalDateTime now = LocalDateTime.now();
+        if(now.isAfter(expTime)){
+            this.deleteClipboardByName(name);
+            return R.error(Code.CUT_OUT_OF_DATE, String.format("剪切板%s已过期", name));
         }
 
         Records records = new Records();
@@ -61,7 +76,7 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
 
         recordsService.save(records);
 
-        return clipboard;
+        return R.success(clipboard);
     }
 
     /**
@@ -71,7 +86,7 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
      */
     @Override
     @Transactional
-    public void updateClipboardByName(Clipboard clipboard) {
+    public R<String> updateClipboardByName(Clipboard clipboard) {
         LambdaQueryWrapper<Clipboard> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Clipboard::getName, clipboard.getName());
 
@@ -79,6 +94,20 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
         if (clipboard1 == null) {
             throw new ClipboardNotFoundException(String.format("剪切板%s不存在", clipboard.getName()));
         }
+
+
+        //检查是否过期
+        LocalDateTime updateTime = clipboard1.getUpdateTime();
+        Integer expiration = clipboard1.getExpiration();
+        LocalDateTime expTime = updateTime.plusSeconds(expiration);
+        LocalDateTime now = LocalDateTime.now();
+        if(now.isAfter(expTime)){
+            this.deleteClipboardByName(clipboard.getName());
+            return R.error(Code.CUT_OUT_OF_DATE, String.format("剪切板%s已过期", clipboard.getName()));
+        }
+
+
+
         clipboard.setId(clipboard1.getId());
         this.updateById(clipboard);
 
@@ -88,6 +117,8 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
         records.setMain("匿名");
 
         recordsService.save(records);
+
+        return R.success("success");
     }
 
     /**

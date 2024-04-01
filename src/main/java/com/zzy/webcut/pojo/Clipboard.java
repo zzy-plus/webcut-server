@@ -2,7 +2,7 @@ package com.zzy.webcut.pojo;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -15,6 +15,7 @@ public class Clipboard {
     private Integer expiration;
     private String description;
     private Integer isPrivate;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)  //设置字段权限：只写
     private String password;
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;

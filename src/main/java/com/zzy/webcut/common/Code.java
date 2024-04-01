@@ -9,6 +9,8 @@ public class Code {
 
     public static final Integer NOT_ALLOWED = 1403;
 
+    public static final Integer CUT_OUT_OF_DATE = 1406;
+
 
 
 

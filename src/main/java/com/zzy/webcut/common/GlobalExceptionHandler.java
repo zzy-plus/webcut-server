@@ -1,5 +1,6 @@
 package com.zzy.webcut.common;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -10,6 +11,7 @@ import java.sql.SQLIntegrityConstraintViolationException;
 
 @ControllerAdvice(annotations = {Controller.class, RestController.class})
 @ResponseBody
+@Slf4j
 public class GlobalExceptionHandler {
 
     /**
@@ -19,6 +21,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(SQLIntegrityConstraintViolationException.class)   //处理的异常类型
     public R<String> sqlExceptionHandler(SQLIntegrityConstraintViolationException ex){
+
         if(ex.getMessage().contains("Duplicate entry")){
             String[] sp = ex.getMessage().split(" ");
             return R.error( Code.CUT_ALREADY_EXISTS, String.format("剪切板%s已存在", sp[2]));
@@ -26,16 +29,6 @@ public class GlobalExceptionHandler {
         return R.error(Code.UNKNOW_ERROR,"数据库未知错误");
     }
 
-    /**
-     * 处理自定义异常
-     * @param ex
-     * @return
-     */
-    @ExceptionHandler(CustomException.class)
-    public R<String> customExceptionHandler(CustomException ex){
-
-        return R.error(ex.getMessage());
-    }
 
     /**
      * 剪切板找不到
@@ -46,6 +39,9 @@ public class GlobalExceptionHandler {
     public R<String> clipboardNotFoundExceptionHandler(ClipboardNotFoundException ex){
         return R.error(Code.CUT_NOT_FOUND, ex.getMessage());
     }
+
+
+
 
 
 
