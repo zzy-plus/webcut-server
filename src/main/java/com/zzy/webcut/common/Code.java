@@ -11,6 +11,10 @@ public class Code {
 
     public static final Integer CUT_OUT_OF_DATE = 1406;
 
+    public static final Integer AUTH_REQUIRED = 1407;
+
+    public static final Integer AUTH_FIALED = 1408;
+
 
 
 

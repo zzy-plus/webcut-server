@@ -40,6 +40,16 @@ public class GlobalExceptionHandler {
         return R.error(Code.CUT_NOT_FOUND, ex.getMessage());
     }
 
+    /**
+     * 剪切板已经存在
+     * @param ex
+     * @return
+     */
+    @ExceptionHandler(ClipboardExistException.class)
+    public R<String> clipboardAlreadyExistException(ClipboardExistException ex){
+        return R.error(Code.CUT_ALREADY_EXISTS, ex.getMessage());
+    }
+
 
 
 
@@ -54,10 +64,11 @@ public class GlobalExceptionHandler {
      * @param ex
      * @return
      */
-    @ExceptionHandler(Exception.class)
-    public R<String> exceptionHandler(Exception ex){
-
-        return R.error(Code.UNKNOW_ERROR,ex.getMessage());
-    }
+//    @ExceptionHandler(Exception.class)
+//    public R<String> exceptionHandler(Exception ex){
+//
+//        log.error(ex.getMessage());
+//        return R.error(Code.UNKNOW_ERROR,ex.getMessage());
+//    }
 
 }

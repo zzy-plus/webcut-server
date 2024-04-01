@@ -1,13 +1,19 @@
 package com.zzy.webcut.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.zzy.webcut.common.BaseContext;
 import com.zzy.webcut.common.Code;
 import com.zzy.webcut.common.R;
 import com.zzy.webcut.pojo.Clipboard;
+import com.zzy.webcut.pojo.ClipboardDto;
 import com.zzy.webcut.service.ClipboardService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/clipboard")
@@ -24,7 +30,9 @@ public class ClipboardController {
      * @return
      */
     @PostMapping
-    public R<String> save(@RequestBody Clipboard clipboard) {
+    public R<String> save(@RequestBody Clipboard clipboard, HttpServletRequest request) {
+
+        BaseContext.setIp(request.getRemoteAddr());
 
         clipboardService.saveClipboard(clipboard);
 
@@ -34,47 +42,85 @@ public class ClipboardController {
     /**
      * 根据名称获取剪切板数据
      *
-     * @param name
+     * @param clipboard
      * @return
      */
-    @GetMapping("/{name}")
-    public R<Clipboard> getByName(@PathVariable String name) {
+    @PostMapping("/info")
+    public R<ClipboardDto> getByName(@RequestBody Clipboard clipboard, HttpServletRequest request) {
 
-        R<Clipboard> result = clipboardService.getClipboardByName(name);
+        BaseContext.setIp(request.getRemoteAddr());
+
+        R<Clipboard> result = clipboardService.getClipboardByName(clipboard);
 
         if(result.getCode().equals(Code.CUT_OUT_OF_DATE)){
             return R.error(Code.CUT_OUT_OF_DATE, result.getMsg());
+        }else if(result.getCode().equals(Code.AUTH_REQUIRED)){
+            return R.error(Code.AUTH_REQUIRED, result.getMsg());
+        }else if(result.getCode().equals(Code.AUTH_FIALED)){
+            return R.error(Code.AUTH_FIALED, result.getMsg());
         }
 
-        return R.success(result.getData());
+        Clipboard data = result.getData();
+        ClipboardDto clipboardDto = new ClipboardDto();
+        BeanUtils.copyProperties(data, clipboardDto);
+        clipboardDto.setSid(data.getId().toString());
+
+        return R.success(clipboardDto);
     }
 
     /**
      * 更新剪切板
      *
-     * @param clipboard
+     * @param clipboardDto
      * @return
      */
     @PutMapping
-    public R<String> update(@RequestBody Clipboard clipboard) {
+    public R<String> update(@RequestBody ClipboardDto clipboardDto, HttpServletRequest request) {
 
-        log.info(clipboard.getPassword());
+        BaseContext.setIp(request.getRemoteAddr());
 
-        R<String> result = clipboardService.updateClipboardByName(clipboard);
+        R<String> result = clipboardService.updateClipboardByName(clipboardDto);
 
         if(result.getCode().equals(Code.CUT_OUT_OF_DATE)){
             return R.error(Code.CUT_OUT_OF_DATE, result.getMsg());
+        }else if(result.getCode().equals(Code.AUTH_FIALED)){
+            return R.error(Code.AUTH_FIALED, result.getMsg());
         }
 
         return R.success("修改成功");
     }
 
+    /**
+     * 删除剪切板
+     * @param name
+     * @return
+     */
     @DeleteMapping("/{name}")
     public R<String> delete(@PathVariable String name) {
 
         clipboardService.deleteClipboardByName(name);
 
         return R.success("删除成功");
+    }
+
+
+    @PostMapping("/access")
+    public R<String> access(@RequestBody Clipboard clipboard){
+        if(clipboard.getName() == null || clipboard.getPassword() == null){
+            return R.error(Code.AUTH_FIALED, "认证失败");
+        }
+
+        LambdaQueryWrapper<Clipboard> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Clipboard::getName, clipboard.getName());
+        Clipboard one = clipboardService.getOne(queryWrapper);
+        if(one == null){
+            return R.error("未知错误");
+        }
+        if(clipboard.getPassword().equals(one.getPassword())){
+            return R.success("认证成功");
+        }else {
+            return R.error(Code.AUTH_FIALED, "认证失败");
+        }
     }
 
 
