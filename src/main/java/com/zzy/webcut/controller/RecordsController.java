@@ -30,6 +30,7 @@ public class RecordsController {
         LambdaQueryWrapper<Records> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Records::getClipboardId, Long.parseLong(id));
         queryWrapper.orderByDesc(Records::getTime);
+        queryWrapper.orderByDesc(Records::getAction);
 
         Page<Records> page = recordsService.page(pageInfo, queryWrapper);
 

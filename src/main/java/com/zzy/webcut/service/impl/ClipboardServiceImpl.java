@@ -12,6 +12,7 @@ import com.zzy.webcut.service.ClipboardService;
 import com.zzy.webcut.service.RecordsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -24,6 +25,8 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
 
     @Autowired
     private RecordsService recordsService;
+    @Value("${myconfig.maxlen}")
+    private Integer maxLength;
 
     /**
      * 新建剪切板
@@ -38,7 +41,7 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
         queryWrapper.eq(Clipboard::getName, clipboard.getName());
 
         Clipboard one = this.getOne(queryWrapper);
-        if (one != null) {
+        if (one != null && one.getExpiration() != -1) {
             //检查是否过期
             LocalDateTime updateTime = one.getUpdateTime();
             Integer expiration = one.getExpiration();
@@ -49,6 +52,11 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
             } else {     //已过期
                 this.deleteClipboardByName(clipboard.getName());
             }
+        }
+
+        //检查内容长度
+        if(clipboard.getContent() != null && clipboard.getContent().length() > maxLength){
+            throw new ContentTooLongException("文本长度超出限制");
         }
 
         //新增
@@ -82,13 +90,15 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
         }
 
         //检查是否过期
-        LocalDateTime updateTime = clipboard.getUpdateTime();
-        Integer expiration = clipboard.getExpiration();
-        LocalDateTime expTime = updateTime.plusSeconds(expiration);
-        LocalDateTime now = LocalDateTime.now();
-        if (now.isAfter(expTime)) {
-            this.deleteClipboardByName(name);
-            return R.error(Code.CUT_OUT_OF_DATE, String.format("剪切板%s已过期", name));
+        if(!clipboard.getExpiration().equals(-1)){
+            LocalDateTime updateTime = clipboard.getUpdateTime();
+            Integer expiration = clipboard.getExpiration();
+            LocalDateTime expTime = updateTime.plusSeconds(expiration);
+            LocalDateTime now = LocalDateTime.now();
+            if (now.isAfter(expTime)) {
+                this.deleteClipboardByName(name);
+                return R.error(Code.CUT_OUT_OF_DATE, String.format("剪切板%s已过期", name));
+            }
         }
 
         //检查是否需要认证
@@ -99,6 +109,12 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
                 return R.error(Code.AUTH_FIALED, "认证失败");
             }
         }
+
+        //更新updateTime字段
+        Clipboard updateTimeClipboard = new Clipboard();
+        updateTimeClipboard.setId(clipboard.getId());
+        updateTimeClipboard.setUpdateTime(LocalDateTime.now());
+        this.updateById(updateTimeClipboard);
 
         Records records = new Records();
         records.setClipboardId(clipboard.getId());
@@ -128,14 +144,17 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
 
 
         //检查是否过期
-        LocalDateTime updateTime = clipboard1.getUpdateTime();
-        Integer expiration = clipboard1.getExpiration();
-        LocalDateTime expTime = updateTime.plusSeconds(expiration);
-        LocalDateTime now = LocalDateTime.now();
-        if (now.isAfter(expTime)) {
-            this.deleteClipboardByName(clipboard.getName());
-            return R.error(Code.CUT_OUT_OF_DATE, String.format("剪切板%s已过期", clipboard.getName()));
+        if(clipboard1.getExpiration() != -1){
+            LocalDateTime updateTime = clipboard1.getUpdateTime();
+            Integer expiration = clipboard1.getExpiration();
+            LocalDateTime expTime = updateTime.plusSeconds(expiration);
+            LocalDateTime now = LocalDateTime.now();
+            if (now.isAfter(expTime)) {
+                this.deleteClipboardByName(clipboard.getName());
+                return R.error(Code.CUT_OUT_OF_DATE, String.format("剪切板%s已过期", clipboard.getName()));
+            }
         }
+
 
         //认证
         if(clipboard1.getIsPrivate() == 1){
@@ -144,8 +163,14 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
             }
         }
 
+        //检查是否修改密码
         if(StringUtils.hasLength(clipboard.getNewPassword())){
             clipboard.setPassword(clipboard.getNewPassword());
+        }
+
+        //检查内容长度
+        if(clipboard.getContent() != null && clipboard.getContent().length() > maxLength){
+            throw new ContentTooLongException("文本长度超出限制");
         }
 
         clipboard.setId(clipboard1.getId());

@@ -15,6 +15,8 @@ public class Code {
 
     public static final Integer AUTH_FIALED = 1408;
 
+    public static final Integer CONTENT_TOO_LONG = 1409;
+
 
 
 

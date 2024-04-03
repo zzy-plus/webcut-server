@@ -46,8 +46,18 @@ public class GlobalExceptionHandler {
      * @return
      */
     @ExceptionHandler(ClipboardExistException.class)
-    public R<String> clipboardAlreadyExistException(ClipboardExistException ex){
+    public R<String> clipboardAlreadyExistExceptionHandler(ClipboardExistException ex){
         return R.error(Code.CUT_ALREADY_EXISTS, ex.getMessage());
+    }
+
+    /**
+     * 内容太长
+     * @param ex
+     * @return
+     */
+    @ExceptionHandler(ContentTooLongException.class)
+    public R<String> contentTooLongExceptionHandler(ContentTooLongException ex){
+        return R.error(Code.CONTENT_TOO_LONG, ex.getMessage());
     }
 
 

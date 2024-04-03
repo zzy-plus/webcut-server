@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/clipboard")
@@ -40,7 +41,7 @@ public class ClipboardController {
     }
 
     /**
-     * 根据名称获取剪切板数据
+     * 根据名称获取剪切板详细数据
      *
      * @param clipboard
      * @return
@@ -66,6 +67,46 @@ public class ClipboardController {
         clipboardDto.setSid(data.getId().toString());
 
         return R.success(clipboardDto);
+    }
+
+
+    /**
+     * 获取剪切板当前状态
+     * @param name
+     * @return
+     */
+    @GetMapping("/{name}")
+    public R<Clipboard> getClipboardStatus(@PathVariable String name){
+
+        LambdaQueryWrapper<Clipboard> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Clipboard::getName, name);
+        queryWrapper.select(Clipboard::getId, Clipboard::getName, Clipboard::getExpiration,
+                        Clipboard::getIsPrivate, Clipboard::getUpdateTime);
+
+        Clipboard clipboard = clipboardService.getOne(queryWrapper);
+
+        //检查剪切板是否存在
+        if(clipboard == null){
+            return R.error(Code.CUT_NOT_FOUND, String.format("剪切板%s不存在", name));
+        }
+
+        //检查是否过期
+        if(clipboard.getExpiration() != -1){
+            LocalDateTime updateTime = clipboard.getUpdateTime();
+            Integer expiration = clipboard.getExpiration();
+            LocalDateTime expTime = updateTime.plusSeconds(expiration);
+            LocalDateTime now = LocalDateTime.now();
+            if (now.isAfter(expTime)) {
+                return R.error(Code.CUT_OUT_OF_DATE, String.format("剪切板%s已过期", name));
+            }
+        }
+
+        //检查是否需要认证
+        if(clipboard.getIsPrivate() == 1){
+            return R.error(Code.AUTH_REQUIRED, "需要验证");
+        }
+
+        return R.success(clipboard);
     }
 
     /**

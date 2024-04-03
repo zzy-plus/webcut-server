@@ -19,3 +19,7 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: ASSIGN_ID  #雪花算法生成id
+
+
+myconfig:
+  maxlen: 100000
