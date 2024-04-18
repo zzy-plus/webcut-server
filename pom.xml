@@ -81,7 +81,7 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.zzy.webcut.WebcutApplication</mainClass>
-                    <skip>true</skip>
+                    <skip>false</skip>
                 </configuration>
                 <executions>
                     <execution>

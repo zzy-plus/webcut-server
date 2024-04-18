@@ -37,6 +37,11 @@ public class ClipboardServiceImpl extends ServiceImpl<ClipboardMapper, Clipboard
     @Transactional
     public void saveClipboard(Clipboard clipboard) {
 
+        String name = clipboard.getName();
+        if(name.length() > 20){
+            throw new NameTooLongException("剪切板名字过长(限20字符)");
+        }
+
         LambdaQueryWrapper<Clipboard> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Clipboard::getName, clipboard.getName());
 

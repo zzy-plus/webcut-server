@@ -60,10 +60,10 @@ public class GlobalExceptionHandler {
         return R.error(Code.CONTENT_TOO_LONG, ex.getMessage());
     }
 
-
-
-
-
+    @ExceptionHandler(NameTooLongException.class)
+    public R<String> nameTooLongExceptionHandler(NameTooLongException ex){
+        return R.error(Code.NAME_TOO_LONG, ex.getMessage());
+    }
 
 
 

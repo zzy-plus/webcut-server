@@ -17,6 +17,8 @@ public class Code {
 
     public static final Integer CONTENT_TOO_LONG = 1409;
 
+    public static final Integer NAME_TOO_LONG = 1410;
+
 
 
 
